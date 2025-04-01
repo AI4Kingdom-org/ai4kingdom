@@ -1,0 +1,5 @@
+{
+    "UserId": {"S": "test-user-2"},
+    "Timestamp": {"S": "2024-01-01T00:01:00Z"},
+    "Message": {"S": "{\"userMessage\":\"test message\",\"botReply\":\"test reply\"}"}
+}

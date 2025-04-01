@@ -1,0 +1,61 @@
+version: 1
+backend:
+  phases:
+    build:
+      commands:
+        - npm ci --cache .npm --prefer-offline
+        - npx ampx pipeline-deploy --branch $AWS_BRANCH --app-id $AWS_APP_ID
+frontend:
+  phases:
+    preBuild:
+      commands:
+        # 安装 Python 依赖
+        - python3 -m pip install --user yt-dlp openai-whisper torch torchvision torchaudio
+        # 常规 npm 安装
+        - npm ci
+    build:
+      commands:
+        # 创建环境变量文件
+        - |
+          cat << EOF > .env.production
+          OPENAI_API_KEY=$OPENAI_API_KEY
+          NEXT_PUBLIC_USER_POOL_ID=$NEXT_PUBLIC_USER_POOL_ID
+          NEXT_PUBLIC_USER_POOL_CLIENT_ID=$NEXT_PUBLIC_USER_POOL_CLIENT_ID
+          NEXT_PUBLIC_IDENTITY_POOL_ID=$NEXT_PUBLIC_IDENTITY_POOL_ID
+          NEXT_PUBLIC_REGION=$NEXT_PUBLIC_REGION
+          NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+          NEXT_PUBLIC_API_KEY=$NEXT_PUBLIC_API_KEY
+          EOF
+        # 创建 aws-exports.js
+        - |
+          cat << EOF > aws-exports.js
+          const awsconfig = {
+            "aws_project_region": "$NEXT_PUBLIC_REGION",
+            "aws_cognito_region": "$NEXT_PUBLIC_REGION",
+            "aws_user_pools_id": "$NEXT_PUBLIC_USER_POOL_ID",
+            "aws_user_pools_web_client_id": "$NEXT_PUBLIC_USER_POOL_CLIENT_ID",
+            "aws_cognito_identity_pool_id": "$NEXT_PUBLIC_IDENTITY_POOL_ID",
+            "aws_appsync_graphqlEndpoint": "$NEXT_PUBLIC_API_URL",
+            "aws_appsync_region": "$NEXT_PUBLIC_REGION",
+            "aws_appsync_authenticationType": "API_KEY",
+            "aws_appsync_apiKey": "$NEXT_PUBLIC_API_KEY",
+            "Auth": {
+              "Cognito": {
+                "userPoolId": "$NEXT_PUBLIC_USER_POOL_ID",
+                "userPoolClientId": "$NEXT_PUBLIC_USER_POOL_CLIENT_ID",
+                "identityPoolId": "$NEXT_PUBLIC_IDENTITY_POOL_ID"
+              }
+            }
+          };
+          export default awsconfig;
+          EOF
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+  cache:
+    paths:
+      - .next/cache/**/*
+      - .npm/**/*
+      - node_modules/**/*

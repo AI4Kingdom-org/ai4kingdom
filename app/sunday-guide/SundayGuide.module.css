@@ -1,0 +1,41 @@
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+}
+
+.section {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.title {
+  margin-bottom: 2rem;
+  color: #333;
+}
+
+.sectionTitle {
+  margin-bottom: 1rem;
+  color: #666;
+} 
+
+.chatContainer {
+  width: 100%;
+  height: auto;
+  margin-top: 2rem;
+  padding: 1.5rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+/* 适配移动端 */
+@media (max-width: 768px) {
+  .container {
+    height: calc(100vh - 56px);
+    padding: 0.5rem;
+  }
+}

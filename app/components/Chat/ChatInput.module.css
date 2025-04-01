@@ -1,0 +1,35 @@
+.inputContainer {
+  display: flex;
+  gap: 10px;
+  padding: 20px;
+  background-color: #fff;
+  border-top: 1px solid #e0e0e0;
+}
+
+.textArea {
+  flex: 1;
+  padding: 10px;
+  border: 1px solid #e0e0e0;
+  border-radius: 4px;
+  resize: none;
+  font-family: inherit;
+}
+
+.button {
+  padding: 0 20px;
+  background-color: #1976d2;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.button:hover:not(:disabled) {
+  background-color: #1565c0;
+}
+
+.button:disabled {
+  background-color: #bdbdbd;
+  cursor: not-allowed;
+} 

@@ -1,0 +1,50 @@
+{
+  "name": "aws-amplify-gen2",
+  "version": "0.1.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "dependencies": {
+    "@aws-amplify/auth": "^6.7.0",
+    "@aws-amplify/backend-data": "^1.2.1",
+    "@aws-amplify/backend-graphql": "^0.3.2",
+    "@aws-amplify/backend-storage": "^1.2.3",
+    "@aws-amplify/ui-react": "^6.7.0",
+    "@aws-sdk/client-cognito-identity": "^3.699.0",
+    "@aws-sdk/client-dynamodb": "^3.734.0",
+    "@aws-sdk/credential-providers": "^3.699.0",
+    "@aws-sdk/lib-dynamodb": "^3.734.0",
+    "@types/axios": "^0.9.36",
+    "@types/fluent-ffmpeg": "^2.1.27",
+    "aws-amplify": "^6.10.0",
+    "axios": "^1.7.9",
+    "json-schema-to-ts": "^3.1.1",
+    "next": "^14.2.1",
+    "openai": "^4.78.1",
+    "python-shell": "^5.0.0",
+    "react": "^18",
+    "react-dom": "^18",
+    "react-hook-form": "^7.43.7",
+    "react-markdown": "^9.0.3",
+    "react-rnd": "^10.5.2",
+    "ts-algebra": "^2.0.0",
+    "yt-dlp-wrap": "^2.3.12"
+  },
+  "devDependencies": {
+    "@aws-amplify/backend": "^1.8.0",
+    "@aws-amplify/backend-cli": "^1.4.2",
+    "@types/node": "^20",
+    "@types/react": "^18",
+    "@types/react-dom": "^18",
+    "aws-cdk": "^2",
+    "aws-cdk-lib": "^2",
+    "constructs": "^10.3.0",
+    "esbuild": "^0.23.1",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.2"
+  }
+}

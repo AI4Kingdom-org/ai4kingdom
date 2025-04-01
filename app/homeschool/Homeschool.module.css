@@ -1,0 +1,14 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+  background-color: #ffffff;
+}
+
+/* 适配移动端 */
+@media (max-width: 768px) {
+  .container {
+    height: calc(100vh - 56px); /* 考虑移动端顶部导航栏高度 */
+  }
+} 
