@@ -191,41 +191,60 @@ export async function POST(request: Request) {
   try {
     const { message, threadId, userId, config } = await request.json();
 
-    // 验证助手
+    // 1) 首先检查月度用量，防止用户已达上限
+    const usageCheckUrl = `${process.env.NEXT_PUBLIC_SITE_URL || ''}/api/usage/monthly?userId=${userId}`;
+
+    const usageCheckResponse = await fetch(usageCheckUrl);
+    const usageData = await usageCheckResponse.json();
+
+    // 如果 usage 接口返回非 200，说明检查失败或权限问题
+    if (!usageCheckResponse.ok) {
+      // usageData 中可能包含 error 或其他信息
+      return NextResponse.json({
+        error: usageData.error || 'Failed to check monthly usage',
+        details: usageData.details || 'Unknown error'
+      }, { status: usageCheckResponse.status });
+    }
+
+    // 解析 usageData，查看 remaining 是否小于等于 0
+    // usageData.usage: { monthlyCount, monthlyLimit, remaining, nextResetDate, ... }
+    if (usageData?.usage?.remaining !== undefined && usageData.usage.remaining <= 0) {
+      // 若剩余可用量 <= 0，则返回 403 并提示
+      const resetDate = usageData.usage.nextResetDate || '下个月某日';
+      return NextResponse.json({
+        error: "Monthly usage limit reached",
+        message: `你本月的 Token 已经用完，预计在 ${resetDate} 重置。`
+      }, { status: 403 });
+    }
+
+    // 2) 如果没有超额，继续原有逻辑，比如验证助手 ID
     try {
-      const assistant = await openai.beta.assistants.retrieve(config.assistantId);
+      // 调用 openai.beta.assistants.retrieve 检查该 assistant 是否存在
+      await openai.beta.assistants.retrieve(config.assistantId);
     } catch (error) {
-      console.error('[ERROR] 助手验证失败:', {
-        error,
-        assistantId: config?.assistantId,
-        errorType: error instanceof Error ? error.name : typeof error,
-        errorMessage: error instanceof Error ? error.message : String(error),
-        statusCode: (error as any)?.status || 'unknown'
-      });
+      console.error('[ERROR] 助手验证失败:', { error });
       return NextResponse.json({ 
         error: '助手ID无效',
         details: {
           message: error instanceof Error ? error.message : '未知错误',
-          assistantId: config?.assistantId,
-          type: error instanceof Error ? error.name : typeof error
+          assistantId: config?.assistantId
         }
       }, { status: 400 });
     }
 
+    // 3) 创建或获取现有的对话线程 (thread)
     let activeThreadId = threadId;
     let thread;
-
-    // 如果提供了现有线程ID，先尝试获取
     if (threadId) {
       try {
         thread = await openai.beta.threads.retrieve(threadId);
-        activeThreadId = threadId;
+        activeThreadId = threadId; // 如果能正常获取，沿用原线程
       } catch (error) {
+        // 若获取失败，则新建
         console.warn('[WARN] 获取现有线程失败，将创建新线程:', error);
       }
     }
-
-    // 如果没有现有线程或获取失败，创建新线程
+    // 如果前面没有拿到 thread，则新建
     if (!thread) {
       thread = await openai.beta.threads.create({
         metadata: {
@@ -238,74 +257,219 @@ export async function POST(request: Request) {
       activeThreadId = thread.id;
     }
 
+    // 4) 在该线程中添加一条用户消息
     await openai.beta.threads.messages.create(activeThreadId, {
       role: 'user',
       content: message
     });
 
+    // 5) 创建一个 run，触发 AI 回复
     const run = await openai.beta.threads.runs.create(activeThreadId, {
       assistant_id: config.assistantId,
       max_completion_tokens: 1000
     });
 
-    // 等待运行完成
-    let runStatus = await openai.beta.threads.runs.retrieve(
-      activeThreadId,
-      run.id
-    );
-
+    // 6) 轮询检查 run 的状态，直到完成或失败
+    let runStatus = await openai.beta.threads.runs.retrieve(activeThreadId, run.id);
     while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      runStatus = await openai.beta.threads.runs.retrieve(
-        activeThreadId,
-        run.id
-      );
+      await new Promise(resolve => setTimeout(resolve, 1000)); // 暂停 1 秒后再次检查
+      runStatus = await openai.beta.threads.runs.retrieve(activeThreadId, run.id);
     }
 
     if (runStatus.status !== 'completed') {
       console.error('[ERROR] 助手运行失败:', runStatus);
-      throw new Error(`Assistant run failed with status: ${runStatus.status}`);
+      return NextResponse.json({
+        error: `Assistant run failed with status: ${runStatus.status}`
+      }, { status: 500 });
     }
 
-    // 获取助手的回复
+    // 7) 获取助手的回复文本
     const messages = await openai.beta.threads.messages.list(activeThreadId);
     const lastMessage = messages.data[0];
+    // 下面的逻辑把所有 type === 'text' 的片段组合起来
     const assistantReply = lastMessage.content
       .filter(content => content.type === 'text')
       .map(content => (content.type === 'text' ? content.text.value : ''))
       .join('\n');
-    
+
+    // 8) 记录本次消息消耗的 Token 数量
+    // runStatus 里通常有 usage 信息，如 runStatus.usage.total_tokens
+    const tokensUsedThisTurn = runStatus.usage?.total_tokens ?? 0;
+
+    try {
+      // 将本次使用记录到 DynamoDB，以便 /api/usage/... 可以统计
+      const dbConfig = await getDynamoDBConfig();
+      const client = new DynamoDBClient(dbConfig);
+      const docClient = DynamoDBDocumentClient.from(client);
+
+      // 写入 ChatHistory 或其他表，以存储本次消息和消耗的 Token
+      await docClient.send(new PutCommand({
+        TableName: "ChatHistory",
+        Item: {
+          UserId: String(userId),
+          ThreadId: activeThreadId,
+          Type: 'message',         // 自定义类型，可标记是对话消息
+          Message: message,        // 记录用户输入内容
+          TokensUsed: tokensUsedThisTurn,
+          Timestamp: new Date().toISOString()
+        }
+      }));
+    } catch (dbError) {
+      console.error('[ERROR] 保存 Token Usage 失败:', dbError);
+      // 此处不抛错，以免影响正常返回
+    }
+
+    // 9) 返回给前端成功响应，其中包含 AI 回复
     return NextResponse.json({
       success: true,
       reply: assistantReply,
       threadId: activeThreadId,
       debug: {
         runStatus: runStatus.status,
-        messageCount: messages.data.length
+        tokensUsedThisTurn
       }
     });
 
   } catch (error) {
-    console.error('[ERROR] 聊天API错误:', {
-      error,
-      type: error instanceof Error ? error.name : typeof error,
-      message: error instanceof Error ? error.message : String(error),
-      stack: error instanceof Error ? error.stack : undefined
-    });
+    console.error('[ERROR] 聊天API错误:', error);
     return NextResponse.json({ 
-      error: error instanceof Error ? error.message : '未知错误',
-      details: error instanceof Error ? error.stack : undefined
+      error: error instanceof Error ? error.message : '未知错误'
     }, { status: 500 });
   }
 }
 
-// 保留 OPTIONS 方法用于 CORS
+// 保留 OPTIONS 方法用于 CORS（如果你需要跨域支持）
 export async function OPTIONS(request: Request) {
-  const origin = request.headers.get('origin');
-  const headers = setCORSHeaders(origin);
-  
+  // 视具体需求而定，此处只做示例
   return new Response(null, {
     status: 204,
-    headers
+    headers: {
+      'Access-Control-Allow-Origin': '*',      // 或者限制指定域名
+      'Access-Control-Allow-Methods': 'POST, OPTIONS',
+      'Access-Control-Allow-Headers': 'Content-Type',
+    },
   });
 }
+
+// export async function POST(request: Request) {
+//   try {
+//     const { message, threadId, userId, config } = await request.json();
+
+//     // 验证助手
+//     try {
+//       const assistant = await openai.beta.assistants.retrieve(config.assistantId);
+//     } catch (error) {
+//       console.error('[ERROR] 助手验证失败:', {
+//         error,
+//         assistantId: config?.assistantId,
+//         errorType: error instanceof Error ? error.name : typeof error,
+//         errorMessage: error instanceof Error ? error.message : String(error),
+//         statusCode: (error as any)?.status || 'unknown'
+//       });
+//       return NextResponse.json({ 
+//         error: '助手ID无效',
+//         details: {
+//           message: error instanceof Error ? error.message : '未知错误',
+//           assistantId: config?.assistantId,
+//           type: error instanceof Error ? error.name : typeof error
+//         }
+//       }, { status: 400 });
+//     }
+
+//     let activeThreadId = threadId;
+//     let thread;
+
+//     // 如果提供了现有线程ID，先尝试获取
+//     if (threadId) {
+//       try {
+//         thread = await openai.beta.threads.retrieve(threadId);
+//         activeThreadId = threadId;
+//       } catch (error) {
+//         console.warn('[WARN] 获取现有线程失败，将创建新线程:', error);
+//       }
+//     }
+
+//     // 如果没有现有线程或获取失败，创建新线程
+//     if (!thread) {
+//       thread = await openai.beta.threads.create({
+//         metadata: {
+//           userId,
+//           type: config.type,
+//           assistantId: config.assistantId,
+//           vectorStoreId: config.vectorStoreId
+//         }
+//       });
+//       activeThreadId = thread.id;
+//     }
+
+//     await openai.beta.threads.messages.create(activeThreadId, {
+//       role: 'user',
+//       content: message
+//     });
+
+//     const run = await openai.beta.threads.runs.create(activeThreadId, {
+//       assistant_id: config.assistantId,
+//       max_completion_tokens: 1000
+//     });
+
+//     // 等待运行完成
+//     let runStatus = await openai.beta.threads.runs.retrieve(
+//       activeThreadId,
+//       run.id
+//     );
+
+//     while (runStatus.status === 'in_progress' || runStatus.status === 'queued') {
+//       await new Promise(resolve => setTimeout(resolve, 1000));
+//       runStatus = await openai.beta.threads.runs.retrieve(
+//         activeThreadId,
+//         run.id
+//       );
+//     }
+
+//     if (runStatus.status !== 'completed') {
+//       console.error('[ERROR] 助手运行失败:', runStatus);
+//       throw new Error(`Assistant run failed with status: ${runStatus.status}`);
+//     }
+
+//     // 获取助手的回复
+//     const messages = await openai.beta.threads.messages.list(activeThreadId);
+//     const lastMessage = messages.data[0];
+//     const assistantReply = lastMessage.content
+//       .filter(content => content.type === 'text')
+//       .map(content => (content.type === 'text' ? content.text.value : ''))
+//       .join('\n');
+    
+//     return NextResponse.json({
+//       success: true,
+//       reply: assistantReply,
+//       threadId: activeThreadId,
+//       debug: {
+//         runStatus: runStatus.status,
+//         messageCount: messages.data.length
+//       }
+//     });
+
+//   } catch (error) {
+//     console.error('[ERROR] 聊天API错误:', {
+//       error,
+//       type: error instanceof Error ? error.name : typeof error,
+//       message: error instanceof Error ? error.message : String(error),
+//       stack: error instanceof Error ? error.stack : undefined
+//     });
+//     return NextResponse.json({ 
+//       error: error instanceof Error ? error.message : '未知错误',
+//       details: error instanceof Error ? error.stack : undefined
+//     }, { status: 500 });
+//   }
+// }
+
+// // 保留 OPTIONS 方法用于 CORS
+// export async function OPTIONS(request: Request) {
+//   const origin = request.headers.get('origin');
+//   const headers = setCORSHeaders(origin);
+  
+//   return new Response(null, {
+//     status: 204,
+//     headers
+//   });
+// }
