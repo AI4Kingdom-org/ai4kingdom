@@ -12,8 +12,8 @@ interface MonthlyUsageLimit {
 
 // 设置月度 Token 限制
 const MONTHLY_LIMITS: MonthlyUsageLimit = {
-  free: 100000,      
-  pro: 1000000,      
+  free: 10,      
+  pro: 100,      
   ultimate: Infinity 
 };
 
