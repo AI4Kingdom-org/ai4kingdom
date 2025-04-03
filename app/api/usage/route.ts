@@ -14,8 +14,8 @@ interface UsageLimit {
 
 // 示例：10K / 100K / ∞ tokens/week （可根据需要调整）
 const WEEKLY_LIMITS: UsageLimit = {
-  free: 10000,
-  pro: 100000,
+  free: 10,
+  pro: 100,
   ultimate: Infinity
 };
 
