@@ -1,35 +1,73 @@
 .inputContainer {
   display: flex;
-  gap: 10px;
-  padding: 20px;
-  background-color: #fff;
-  border-top: 1px solid #e0e0e0;
+  gap: 1rem;
+  padding: 1.5rem;
+  background-color: #ffffff;
+  border-top: 1px solid #e5e7eb;
+  position: sticky;
+  bottom: 0;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  box-shadow: 0 -2px 10px rgba(0, 0, 0, 0.05);
 }
 
 .textArea {
   flex: 1;
-  padding: 10px;
-  border: 1px solid #e0e0e0;
-  border-radius: 4px;
+  padding: 1rem 1.25rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 12px;
   resize: none;
   font-family: inherit;
+  font-size: 1rem;
+  line-height: 1.5;
+  min-height: 50px;
+  max-height: 200px;
+  background-color: #f9fafb;
+  transition: all 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.textArea:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
 }
 
 .button {
-  padding: 0 20px;
-  background-color: #1976d2;
+  padding: 0 1.5rem;
+  height: 50px;
+  min-width: 120px;
+  background-color: #2563eb;
   color: white;
   border: none;
-  border-radius: 4px;
+  border-radius: 12px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  font-size: 1rem;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
 }
 
 .button:hover:not(:disabled) {
-  background-color: #1565c0;
+  background-color: #1d4ed8;
+  transform: translateY(-1px);
 }
 
 .button:disabled {
-  background-color: #bdbdbd;
+  background-color: #e5e7eb;
   cursor: not-allowed;
-} 
+  color: #9ca3af;
+}
+
+@media (max-width: 768px) {
+  .inputContainer {
+    padding: 1rem;
+  }
+  
+  .button {
+    min-width: 100px;
+  }
+}

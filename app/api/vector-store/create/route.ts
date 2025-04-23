@@ -7,19 +7,20 @@ const openai = new OpenAI({
 
 export async function POST() {
   try {
-    console.log('开始创建 Vector Store');
+    console.log('開始創建 Vector Store');
     
-    // 只使用 name 参数创建 Vector Store
+    // 添加 vs_ 前綴到名稱中以確保正確的 ID 格式
+    const timestamp = new Date().toISOString();
     const params = {
-      name: `Vector Store ${new Date().toISOString()}`
+      name: `vs_${timestamp}`
     };
     
-    console.log('创建参数:', params);
+    console.log('創建參數:', params);
     
     try {
       const vectorStore = await openai.beta.vectorStores.create(params);
       
-      console.log('Vector Store 创建成功:', {
+      console.log('Vector Store 創建成功:', {
         id: vectorStore.id,
         name: vectorStore.name,
         created_at: vectorStore.created_at
@@ -34,16 +35,16 @@ export async function POST() {
         }
       });
     } catch (apiError) {
-      console.error('OpenAI API 错误:', {
+      console.error('OpenAI API 錯誤:', {
         error: apiError,
-        message: apiError instanceof Error ? apiError.message : '未知错误',
+        message: apiError instanceof Error ? apiError.message : '未知錯誤',
         params: params,
         response: apiError instanceof Error ? (apiError as any).response?.data : undefined
       });
-      
+
       if (apiError instanceof Error) {
         const openaiError = apiError as any;
-        console.error('OpenAI 错误详情:', {
+        console.error('OpenAI 錯誤詳情:', {
           status: openaiError.status,
           type: openaiError.type,
           code: openaiError.code,
@@ -55,18 +56,18 @@ export async function POST() {
       throw apiError;
     }
   } catch (error) {
-    console.error('创建 Vector Store 失败:', {
+    console.error('創建 Vector Store 失敗:', {
       error,
-      message: error instanceof Error ? error.message : '未知错误',
+      message: error instanceof Error ? error.message : '未知錯誤',
       stack: error instanceof Error ? error.stack : undefined
     });
     
     return NextResponse.json(
       { 
-        error: '创建 Vector Store 失败',
-        details: error instanceof Error ? error.message : '未知错误'
+        error: '創建 Vector Store 失敗',
+        details: error instanceof Error ? error.message : '未知錯誤'
       },
       { status: 500 }
     );
   }
-} 
+}

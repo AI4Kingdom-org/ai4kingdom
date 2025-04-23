@@ -70,6 +70,64 @@ export default function Chat({ type, assistantId, vectorStoreId }: ChatProps) {
     }
   }, [user]);
 
+  // 滾動到最新訊息
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [messages]);
+
+  // 當 currentThreadId 變化時加載聊天歷史
+  useEffect(() => {
+    if (currentThreadId && user) {
+      fetchMessageHistory(currentThreadId);
+    }
+  }, [currentThreadId]);
+
+  // 加載聊天歷史的函數
+  const fetchMessageHistory = async (threadId: string) => {
+    if (!threadId || !user) return;
+    
+    try {
+      setIsFetchingHistory(true);
+      setIsLoading(true);
+      
+      const response = await fetch(`/api/messages?threadId=${threadId}&userId=${user.user_id}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (!response.ok) {
+        throw new Error('获取聊天历史失败');
+      }
+
+      const data = await response.json();
+      console.log('[DEBUG] 获取聊天历史成功:', data);
+      
+      // 格式化消息
+      if (data.success && Array.isArray(data.messages)) {
+        const formattedMessages = data.messages.map((msg: any) => ({
+          text: msg.content,
+          sender: msg.role === 'user' ? 'user' : 'bot'
+        }));
+        
+        setMessages(formattedMessages);
+      } else {
+        // 如果返回的不是期望的格式，则设置为空数组
+        setMessages([]);
+      }
+      
+    } catch (err) {
+      console.error('[ERROR] 获取聊天历史失败:', err);
+      setError(err instanceof Error ? err.message : '获取聊天历史失败');
+    } finally {
+      setIsFetchingHistory(false);
+      setIsLoading(false);
+    }
+  };
+
   const handleSelectThread = async (threadId: string) => {
     try {
       if (threadId === currentThreadId) {
@@ -125,6 +183,9 @@ export default function Chat({ type, assistantId, vectorStoreId }: ChatProps) {
       setCurrentThreadId(data.threadId);
       setMessages([]);
       
+      // 觸發會話列表更新
+      window.dispatchEvent(new CustomEvent('refreshConversations'));
+      
     } catch (err) {
       console.error('[ERROR] 创建新对话失败:', err);
       setError(err instanceof Error ? err.message : '创建新对话失败');
@@ -175,6 +236,18 @@ export default function Chat({ type, assistantId, vectorStoreId }: ChatProps) {
         ) : (
           <div className={styles.messagesWrapper}>
             <div className={styles.messageContainer}>
+              {messages.length === 0 && !isLoading && (
+                <div className={styles.emptyChat}>
+                  <p>开始一个新的对话吧！</p>
+                  <button 
+                    className={styles.newChatButton}
+                    onClick={handleCreateNewThread}
+                    disabled={isCreatingThread}
+                  >
+                    {isCreatingThread ? '创建中...' : '+ 新对话'}
+                  </button>
+                </div>
+              )}
               {messages.map((message, index) => (
                 <div
                   key={index}
@@ -207,6 +280,7 @@ export default function Chat({ type, assistantId, vectorStoreId }: ChatProps) {
                   </div>
                 </div>
               )}
+              <div ref={messagesEndRef} /> {/* 用於自動滾動到最新訊息 */}
             </div>
           </div>
         )}

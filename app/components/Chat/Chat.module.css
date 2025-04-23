@@ -1,27 +1,22 @@
 .container {
   display: flex;
-  height: 100vh;
-  width: 100%;
+  height: 100%;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
   overflow: hidden;
-  position: relative; /* 確保位置可拖動 */
-  background-color: initial; /* 恢復背景顏色 */
-}
-
-.chatWindowResizable {
-  position: absolute; /* 可拖動位置 */
-  border-radius: 12px;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-  background-color: black; /* 更改背景顏色為黑色 */
-  overflow: hidden;
-  border: 1px solid #ddd;
+  position: relative;
+  resize: both;
 }
 
 .chatWindow {
+  flex: 1;
   display: flex;
   flex-direction: column;
   height: 100%;
-  width: 100%;
   overflow: hidden;
+  background-color: rgb(43, 41, 41);
+  border-radius: 12px;
 }
 
 .conversationListContainer {
@@ -74,7 +69,7 @@
     display: none;
   }
 
-  .chatWindowResizable {
+  .chatWindow {
     width: 100% !important;
     height: calc(100vh - 56px) !important;
     position: relative !important;

@@ -6,80 +6,57 @@ import { useChat } from '../contexts/ChatContext';
 import Chat from '../components/Chat/Chat';
 import WithChat from '../components/layouts/WithChat';
 import styles from './page.module.css';
-import { ChatType, CHAT_TYPES } from '../config/chatTypes';
+import { CHAT_TYPES } from '../config/chatTypes';
+import { ASSISTANT_IDS, VECTOR_STORE_IDS } from '../config/constants';
 import ReactMarkdown from 'react-markdown';
 
 type GuideMode = 'summary' | 'text' | 'devotional' | 'bible' | null;
-
-type SermonContent = string;  // 简化为单个字符串
 
 function SundayGuideContent() {
   const { user } = useAuth();
   const { setConfig } = useChat();
   const [selectedMode, setSelectedMode] = useState<GuideMode>(null);
-  const [assistantData, setAssistantData] = useState<{
-    assistantId: string;
-    vectorStoreId: string;
-  } | null>(null);
-  const [sermonContent, setSermonContent] = useState<SermonContent | null>(null);
+  const [sermonContent, setSermonContent] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    const fetchLatestAssistant = async () => {
-      try {
-        const response = await fetch('/api/sunday-guide/assistants?mode=active');
-        if (!response.ok) throw new Error('获取助手信息失败');
-        const data = await response.json();
-        
-        if (data.assistant && user?.user_id) {
-          setAssistantData(data.assistant);
-          
-          // 设置 Chat 配置
-          setConfig({
-            type: CHAT_TYPES.SUNDAY_GUIDE,
-            assistantId: data.assistant.assistantId,
-            vectorStoreId: data.assistant.vectorStoreId,
-            userId: user.user_id
-          });
-        }
-      } catch (error) {
-        console.error('获取助手数据失败:', error);
-      }
-    };
-
     if (user?.user_id) {
-      fetchLatestAssistant();
+      // 設定固定的助手配置
+      setConfig({
+        type: CHAT_TYPES.SUNDAY_GUIDE,
+        assistantId: ASSISTANT_IDS.SUNDAY_GUIDE,
+        vectorStoreId: VECTOR_STORE_IDS.JOHNSUNG,
+        userId: user.user_id
+      });
     }
   }, [user, setConfig]);
 
   const handleModeSelect = async (mode: GuideMode) => {
     setSelectedMode(mode);
-    if (!assistantData?.assistantId) return;
-
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/sunday-guide/content/${assistantData.assistantId}?type=${mode}`
+        `/api/sunday-guide/content/${ASSISTANT_IDS.SUNDAY_GUIDE}?type=${mode}`
       );
-      if (!response.ok) throw new Error('获取内容失败');
+      if (!response.ok) throw new Error('獲取內容失敗');
       const data = await response.json();
       setSermonContent(data.content);
     } catch (error) {
-      console.error('获取内容失败:', error);
+      console.error('獲取內容失敗:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const renderContent = () => {
-    if (loading) return <div className={styles.loading}>加载中...</div>;
+    if (loading) return <div className={styles.loading}>加載中...</div>;
     if (!sermonContent) return null;
 
     const titles = {
-      summary: '讲道总结',
+      summary: '講道總結',
       text: '信息文字',
-      devotional: '每日灵修',
-      bible: '查经指引'
+      devotional: '每日靈修',
+      bible: '查經指引'
     };
 
     return (
@@ -94,14 +71,13 @@ function SundayGuideContent() {
 
   return (
     <div className={styles.container}>
-      <h1 className={styles.title}>主日信息导览</h1>
-      
+      <h1 className={styles.title}>主日信息導覽</h1>
       <div className={styles.buttonGroup}>
         <button 
           className={`${styles.modeButton} ${selectedMode === 'summary' ? styles.active : ''}`}
           onClick={() => handleModeSelect('summary')}
         >
-          信息总结
+          信息總結
         </button>
         <button 
           className={`${styles.modeButton} ${selectedMode === 'text' ? styles.active : ''}`}
@@ -113,29 +89,39 @@ function SundayGuideContent() {
           className={`${styles.modeButton} ${selectedMode === 'devotional' ? styles.active : ''}`}
           onClick={() => handleModeSelect('devotional')}
         >
-          每日灵修
+          每日靈修
         </button>
         <button 
           className={`${styles.modeButton} ${selectedMode === 'bible' ? styles.active : ''}`}
           onClick={() => handleModeSelect('bible')}
         >
-          查经指引
+          查經指引
         </button>
       </div>
 
-      <div className={styles.content}>
-        {renderContent()}
-        <div className={styles.chatContainer}>
-          {assistantData && user && (
-            <Chat 
-              type={CHAT_TYPES.SUNDAY_GUIDE}
-              assistantId={assistantData.assistantId}
-              vectorStoreId={assistantData.vectorStoreId}
-              userId={user.user_id}
-            />
-          )}
+      {sermonContent ? (
+        <>
+          <div className={styles.contentWrapper}>
+            <div className={`${styles.contentArea} ${styles.hasContent}`}>
+              {renderContent()}
+            </div>
+            <div className={styles.chatSection}>
+              {user && (
+                <Chat 
+                  type={CHAT_TYPES.SUNDAY_GUIDE}
+                  assistantId={ASSISTANT_IDS.SUNDAY_GUIDE}
+                  vectorStoreId={VECTOR_STORE_IDS.JOHNSUNG}
+                  userId={user.user_id}
+                />
+              )}
+            </div>
+          </div>
+        </>
+      ) : (
+        <div className={styles.emptyState}>
+          <p>請選擇要查看的內容類型</p>
         </div>
-      </div>
+      )}
     </div>
   );
 }
@@ -144,11 +130,11 @@ export default function UserSundayGuide() {
   const { user, loading } = useAuth();
 
   if (loading) {
-    return <div>加载中...</div>;
+    return <div>加載中...</div>;
   }
 
   if (!user) {
-    return <div>请先登录</div>;
+    return <div>請先登錄</div>;
   }
 
   return (
@@ -156,4 +142,4 @@ export default function UserSundayGuide() {
       <SundayGuideContent />
     </WithChat>
   );
-} 
+}

@@ -37,18 +37,33 @@ export default function ConversationList({
 
   // 获取对话列表
   const fetchConversations = async () => {
+    console.log('[DEBUG] 获取对话列表:', { userId, type });
     
     try {
         const response = await fetch(`/api/threads?userId=${userId}&type=${type}`, {
             credentials: 'include'
         });
         
+        if (!response.ok) {
+          throw new Error(`获取对话列表失败: ${response.status}`);
+        }
+        
         const data = await response.json();
+        console.log('[DEBUG] 获取到对话列表:', data);
 
         // 添加数据验证日志
         const validConversations = data.filter((conv: any) => {
             const convType = conv.Type || conv.type;
             const isValid = conv.threadId && convType === type;
+            
+            if (!isValid) {
+                console.warn('[WARN] 过滤掉无效对话:', {
+                    threadId: conv.threadId,
+                    type: convType,
+                    expectedType: type
+                });
+            }
+            
             return isValid;
         });
 
@@ -61,6 +76,7 @@ export default function ConversationList({
         }));
 
         setConversations(formattedConversations);
+        console.log('[DEBUG] 格式化后的对话列表:', formattedConversations);
         
         setError(null);
     } catch (err) {
@@ -86,8 +102,15 @@ export default function ConversationList({
         throw new Error('删除对话失败');
       }
 
+      console.log('[DEBUG] 对话删除成功:', threadId);
+      
       // 刷新对话列表
       await fetchConversations();
+      
+      // 如果删除的是当前选中的对话，清空选择
+      if (currentThreadId === threadId) {
+        onSelectThread('');
+      }
       
     } catch (error) {
       console.error('[ERROR] 删除对话失败:', error);
@@ -98,7 +121,13 @@ export default function ConversationList({
   // 创建新对话并刷新列表
   const handleCreateNewThread = async (e: React.MouseEvent) => {
     e.preventDefault();
-    if (isCreating || !onCreateNewThread) return;
+    console.log('[DEBUG] 触发创建新对话');
+    
+    if (isCreating || !onCreateNewThread) {
+      console.log('[DEBUG] 创建被跳过:', { isCreating, hasCallback: !!onCreateNewThread });
+      return;
+    }
+    
     await onCreateNewThread(e);
     await fetchConversations();
   };
@@ -106,6 +135,7 @@ export default function ConversationList({
   // 添加监听器来处理刷新事件
   useEffect(() => {
     const handleRefresh = () => {
+      console.log('[DEBUG] 接收到刷新对话列表事件');
       fetchConversations();
     };
 
@@ -116,11 +146,13 @@ export default function ConversationList({
   // 初始加载和依赖变化时获取对话列表
   useEffect(() => {
     if (userId && type) {
+      console.log('[DEBUG] 初始加载对话列表:', { userId, type });
       fetchConversations();
     }
   }, [userId, type]);
 
   const handleThreadSelect = (threadId: string) => {
+    console.log('[DEBUG] 选择对话:', threadId);
     onSelectThread(threadId);
   };
 
@@ -263,4 +295,4 @@ export default function ConversationList({
       </div>
     </>
   );
-} 
+}

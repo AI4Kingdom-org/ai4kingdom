@@ -1,94 +1,80 @@
-.container {
-  padding: 20px;
+.uploadContainer {
+  width: 100%;
+  max-width: 600px;
+  margin: 0 auto;
 }
 
-.error {
-  color: #dc3545;
-  margin-bottom: 15px;
-  padding: 10px;
-  background-color: #f8d7da;
-  border-radius: 4px;
+.uploadArea {
+  position: relative;
+  border: 2px dashed #ccc;
+  border-radius: 8px;
+  padding: 2rem;
+  text-align: center;
+  background-color: #f9f9f9;
+  transition: all 0.3s ease;
+  margin-bottom: 1rem;
+  cursor: pointer;
 }
 
-.fileUpload {
-  margin-bottom: 20px;
-  display: flex;
-  gap: 10px;
-  align-items: center;
+.uploadArea:hover, .dragActive {
+  border-color: #2196f3;
+  background-color: #e3f2fd;
 }
 
 .fileInput {
-  flex: 1;
-  padding: 8px;
-  border: 1px solid #ddd;
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  top: 0;
+  left: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.uploadLabel {
+  display: block;
+  font-size: 1.1rem;
+  color: #666;
+  cursor: pointer;
+}
+
+.uploadLabel p {
+  margin: 0.5rem 0;
+}
+
+.supportedFormats {
+  font-size: 0.9rem;
+  color: #888;
+  margin-top: 0.5rem;
+}
+
+.error {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #ffebee;
+  color: #c62828;
   border-radius: 4px;
+  font-size: 0.9rem;
 }
 
-.button {
-  padding: 8px 16px;
-  background-color: #007bff;
-  color: white;
-  border: none;
+.success {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background-color: #e8f5e9;
+  color: #2e7d32;
   border-radius: 4px;
-  cursor: pointer;
+  font-size: 0.9rem;
+  border: 1px solid #a5d6a7;
 }
 
-.button:disabled {
-  background-color: #ccc;
-  cursor: not-allowed;
-}
-
-.deleteButton {
-  background-color: #dc3545;
-}
-
-.fileList {
-  border: 1px solid #ddd;
+.summary {
+  margin-top: 1rem;
+  padding: 1rem;
+  background-color: #e3f2fd;
   border-radius: 4px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  color: #1565c0;
+  border: 1px solid #90caf9;
+  white-space: pre-wrap;
 }
-
-.fileListHeader {
-  padding: 10px;
-  background-color: #f8f9fa;
-  border-bottom: 1px solid #ddd;
-}
-
-.selectAllLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.fileItem {
-  padding: 10px;
-  border-bottom: 1px solid #ddd;
-}
-
-.fileItem:last-child {
-  border-bottom: none;
-}
-
-.fileItem.selected {
-  background-color: #e9ecef;
-}
-
-.fileLabel {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  cursor: pointer;
-}
-
-.fileName {
-  flex: 1;
-}
-
-.uploadDate {
-  color: #6c757d;
-  font-size: 0.9em;
-}
-
-.checkbox {
-  cursor: pointer;
-} 

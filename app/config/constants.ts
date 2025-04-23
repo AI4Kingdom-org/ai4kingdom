@@ -1,9 +1,12 @@
+import SundayGuide from "../sunday-guide/page";
+
 export const ASSISTANT_IDS = {
   GENERAL: 'asst_O9yodhRcFLqS28ZybIF35Y4o',  // 通用助手
   HOMESCHOOL: 'asst_fNylZyKusZ3fKmcR5USxIzbY',  // 暂时使用相同的，之后可以替换为专门的家庭教育助手
   SPIRITUAL_PARTNER: 'asst_fKy4T9OgaIDNXjGTlQB9aoLm',  // 灵修伙伴助手
   CHILDREN_MENTAL: 'asst_LvMdndv0ZetWAaftw76CRraM',  // 儿童心理助手
-  JOHNSUNG: 'asst_5QAFGCqN0BJvgz6FDc5bKhXx' //宋尚节牧师解答属灵问题
+  JOHNSUNG: 'asst_5QAFGCqN0BJvgz6FDc5bKhXx', //宋尚节牧师解答属灵问题
+  SUNDAY_GUIDE: 'asst_4QKJubuGno3Rw4iALWHExIh4'//牧者助手
   // ... 其他类型的助手
 
 };

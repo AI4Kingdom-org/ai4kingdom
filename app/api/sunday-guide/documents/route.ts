@@ -1,11 +1,61 @@
 import { NextResponse } from 'next/server';
 import OpenAI from 'openai';
 import { createDynamoDBClient } from '../../../utils/dynamodb';
-import { PutCommand } from "@aws-sdk/lib-dynamodb";
+import { PutCommand, ScanCommand } from "@aws-sdk/lib-dynamodb";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY
 });
+
+// 獲取文件記錄列表的API端點
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url);
+    const assistantId = searchParams.get('assistantId');
+    
+    // 獲取數據庫連接
+    const docClient = await createDynamoDBClient();
+    
+    // 構建查詢參數
+    const params: any = {
+      TableName: process.env.NEXT_PUBLIC_SUNDAY_GUIDE_TABLE || 'SundayGuide',
+    };
+    
+    // 如果提供了assistantId，則按助手ID過濾
+    if (assistantId) {
+      params.FilterExpression = "assistantId = :assistantId";
+      params.ExpressionAttributeValues = {
+        ":assistantId": assistantId
+      };
+    }
+    
+    // 查詢文件記錄
+    const result = await docClient.send(new ScanCommand(params));
+    
+    // 返回結果
+    return NextResponse.json({
+      success: true,
+      records: result.Items?.map(item => ({
+        assistantId: item.assistantId,
+        vectorStoreId: item.vectorStoreId,
+        fileId: item.fileId,
+        fileName: item.fileName || '未命名文件',
+        updatedAt: item.updatedAt || item.Timestamp,
+        summary: item.summary ? '已生成' : '未生成',
+        fullText: item.fullText ? '已生成' : '未生成',
+        devotional: item.devotional ? '已生成' : '未生成', 
+        bibleStudy: item.bibleStudy ? '已生成' : '未生成'
+      })) || []
+    });
+    
+  } catch (error) {
+    console.error('獲取文件記錄錯誤:', error);
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : '未知錯誤'
+    }, { status: 500 });
+  }
+}
 
 export async function POST(request: Request) {
   try {
@@ -74,19 +124,31 @@ export async function POST(request: Request) {
     const buffer = await file.arrayBuffer();
     const blob = new Blob([buffer]);
     
-    // 创建 vector store
+    // 1. 创建 vector store
+    const vectorStore = await openai.beta.vectorStores.create({
+      name: `Vector Store ${new Date().toISOString()}`
+    });
+    
+    // 2. 创建文件
     const openaiFile = await openai.files.create({
       file: new File([blob], file.name, { type: file.type }),
       purpose: "assistants"
     });
 
-    // 2. 更新 DynamoDB 记录
+    // 3. 添加文件到 vector store
+    await openai.beta.vectorStores.files.create(
+      vectorStore.id,
+      { file_id: openaiFile.id }
+    );
+
+    // 4. 更新 DynamoDB 记录
     const docClient = await createDynamoDBClient();
     const command = new PutCommand({
       TableName: 'SundayGuide',
       Item: {
         assistantId,
-        vectorStoreId: openaiFile.id,
+        vectorStoreId: vectorStore.id, // 使用 vector store ID 而不是文件 ID
+        fileId: openaiFile.id, // 保存文件 ID 以便后续管理
         updatedAt: new Date().toISOString()
       }
     });
@@ -95,7 +157,8 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      vectorStoreId: openaiFile.id
+      vectorStoreId: vectorStore.id,
+      fileId: openaiFile.id
     });
   } catch (error) {
     console.error('详细错误:', error);
@@ -105,4 +168,4 @@ export async function POST(request: Request) {
       details: error instanceof Error ? error.stack : undefined
     }, { status: 500 });
   }
-} 
+}

@@ -1,18 +1,18 @@
 .container {
   height: 100%;
-  display: flex;
+  display: flex; /* 修改: 顯示對話列表 */
   flex-direction: column;
   background-color: #ffffff;
   border-right: 1px solid #e5e7eb;
-  width: 280px;
-  min-width: 280px;
+  width: 252px; /* 將原來的 280px 減少 10% */
+  min-width: 252px; /* 將原來的 280px 減少 10% */
   overflow: hidden;
   overflow-x: hidden;
 }
 
 /* 添加移动端下拉菜单样式 */
 .mobileDropdown {
-  display: none;
+  display: none; /* 默認在桌面端隱藏 */
 }
 
 @media (max-width: 768px) {
@@ -21,7 +21,7 @@
   }
 
   .mobileDropdown {
-    display: block;
+    display: block; /* 在移動設備上顯示 */
     position: relative;
     width: 100%;
     background: #ffffff;
@@ -92,7 +92,7 @@
   cursor: pointer;
   font-size: 0.95rem;
   font-weight: 500;
-  display: flex;
+  display: flex; /* 修改: 顯示新建按鈕 */
   align-items: center;
   gap: 0.75rem;
   transition: all 0.2s ease;
@@ -350,4 +350,4 @@
 
 .createFirstThreadButton:hover {
   background-color: #1d4ed8;
-} 
+}

@@ -1,14 +1,18 @@
 .container {
   display: flex;
   height: 100vh;
-  width: 100%;
+  width: 80%;  /* 調整寬度為80% */
+  margin: 0 auto;
   overflow: hidden;
+  background: #ffffff;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
 /* 对话列表容器 */
 .conversationListContainer {
-  width: 280px;
-  min-width: 280px;
+  width: 70%;
+  min-width: 200px;
   height: 100%;
   border-right: 1px solid #e5e7eb;
   overflow-y: auto;
@@ -42,8 +46,9 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: #ffffff;
-  min-width: 600px;
+  overflow: hidden;
+  background-color: #000000; /* 修改背景為黑色 */
+  border-radius: 12px;
 }
 
 /* 消息列表容器 */
@@ -51,6 +56,7 @@
   flex: 1;
   overflow-y: auto;
   padding: 1rem;
+  background-color: #000000; /* 確保消息列表也為黑色 */
   
   /* 自定义滚动条 */
   scrollbar-width: thin;
@@ -75,12 +81,12 @@
 }
 
 .messageContainer {
+  max-width: 850px;
+  margin: 0 auto;
+  padding: 0 1rem;
   display: flex;
   flex-direction: column;
   gap: 2rem;  /* 增加消息之间的间距 */
-  padding: 1rem;
-  max-width: 900px;  /* 限制最大宽度 */
-  margin: 0 auto;
   width: 100%;
   overflow-x: hidden;
 }
@@ -149,9 +155,10 @@
 .messagesWrapper {
   flex: 1;
   overflow-y: auto;
-  padding: 1rem 0;
+  padding: 2rem;
   scroll-behavior: smooth;
   margin-bottom: 80px;
+  width: 100%;
   
   /* 自定义滚动条样式 */
   scrollbar-width: thin;
@@ -182,14 +189,19 @@
   display: none;
 }
 
+@media (max-width: 768px) {
+  .messagesWrapper {
+    width: 100%;
+  }
+}
+
 /* 修改底部输入区域 */
 .inputContainer {
   display: flex;
-  align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem;
-  background-color: #fcf9f9;
+  padding: 1.5rem;
+  background-color: #ffffff;
   border-top: 1px solid #e5e7eb;
   position: sticky;
   bottom: 0;
@@ -201,9 +213,9 @@
 .input {
   flex-grow: 1;
   height: 50px;
-  padding: 1rem;
+  padding: 1rem 1.5rem;
   border: 1px solid #e5e7eb;
-  border-radius: 0.75rem;
+  border-radius: 12px;
   font-size: 1rem;
   outline: none;
   resize: none;
@@ -267,4 +279,80 @@
 
 .loginButton:hover {
     background-color: #0056b3;
+}
+
+/* 添加空聊天狀態和新對話按鈕樣式 */
+.emptyChat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  padding: 2rem;
+  color: #e5e7eb;
+  text-align: center;
+}
+
+.emptyChat p {
+  margin-bottom: 1rem;
+  font-size: 1.2rem;
+}
+
+.newChatButton {
+  padding: 0.75rem 1.5rem;
+  background-color: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 0.75rem;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.newChatButton:hover {
+  background-color: #1d4ed8;
+}
+
+.newChatButton:disabled {
+  background-color: #9ca3af;
+  cursor: not-allowed;
+}
+
+/* 添加加載中的動畫效果 */
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  color: #e5e7eb;
+  font-size: 1rem;
+}
+
+.typing {
+  display: inline-block;
+  position: relative;
+}
+
+.typing:after {
+  content: '';
+  animation: dots 1.5s infinite;
+}
+
+@keyframes dots {
+  0%, 20% { content: '.'; }
+  40% { content: '..'; }
+  60%, 100% { content: '...'; }
+}
+
+@media (max-width: 768px) {
+  .container {
+    width: 100%;  /* 在移動設備上使用全寬 */
+  }
+  .messagesWrapper {
+    width: 100%;
+  }
+  .chatWindow {
+    min-width: auto;  /* 移除最小寬度限制 */
+  }
 }
